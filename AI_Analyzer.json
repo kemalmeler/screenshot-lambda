@@ -1,0 +1,341 @@
+{
+  "name": "AI_Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n    \"query\": \"TSLA\",\n    \"chat_id\": 1111576484\n}"
+      },
+      "id": "b84d368a-4314-417f-a57f-1f76fa258bb2",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -1340,
+        60
+      ],
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "function": "arn:aws:lambda:eu-central-1:919037188832:function:web-screenshot",
+        "payload": "={\n     \"url\": \"https://www.tradingview.com/chart/?symbol={{ $json.query }}\",\n     \"waitForSelector\": \".chart-container\",\n     \"waitTime\": 20000\n}"
+      },
+      "type": "n8n-nodes-base.awsLambda",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        60
+      ],
+      "id": "43292f0a-2172-4162-acee-dd858da612b0",
+      "name": "AWS Lambda",
+      "credentials": {
+        "aws": {
+          "id": "STkZfaae7nvQh06N",
+          "name": "AWS account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bucketName": "borsaci-telegram",
+        "fileKey": "={{ $json.result }}"
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        -920,
+        60
+      ],
+      "id": "01d96690-ffce-4dd1-bfd1-23f1b762fc88",
+      "name": "AWS S3",
+      "credentials": {
+        "aws": {
+          "id": "STkZfaae7nvQh06N",
+          "name": "AWS account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-2.0-flash-exp:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        240
+      ],
+      "id": "5891f1d1-0311-4fc7-a6a0-efe689f1ffca",
+      "name": "Gemini 2.0 Flash-exp",
+      "credentials": {
+        "openRouterApi": {
+          "id": "8q1TtBJmIgL57q2o",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=ROLE:  \nYou are a **Financial Technical Analysis Expert with 15 years of experience**. Your task is to analyze stock/crypto price charts (provided as images or textual data) and deliver professional, data-driven insights. Image Data Field Name is \"data\" {{ $json.result }} and this graphic about {{ $('When Executed by Another Workflow').item.json.query }}. \n\nMETHOD:  \n1. **Identify Chart Features**:  \n   - Timeframe (daily, weekly, monthly), price action, trading volume.  \n   - Key support/resistance levels, trendlines, chart patterns (Head & Shoulders, Triangles, Flags).  \n\n2. **Apply Technical Indicators**:  \n   - **RSI** (overbought/oversold signals at 70/30), **MACD** (trend momentum), **Moving Averages (50/200-day)**.  \n   - **Fibonacci Retracement** levels (especially in volatile markets).  \n\n3. **Interpret Scenarios**:  \n   - Explain the technical significance of the current price (e.g., \"bullish if above 200-day MA\").  \n   - **Potential Scenarios**:  \n     - **Bullish**: Price targets if resistance breaks (Fibonacci or psychological levels).  \n     - **Bearish**: Downside risks if support fails.  \n   - **Risk Factors**: Overbought/oversold signals, declining volume.  \n\nRULES:  \n- Focus **only on technical analysis**; avoid fundamental analysis (news, company financials).  \n- **Never provide investment advice**—frame insights as probabilities and risks.  \n- Use professional yet clear English. ",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "messageType": "imageBinary"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        -240,
+        60
+      ],
+      "id": "dbd7b463-a879-41d7-ba4f-7489c51d97d5",
+      "name": "Gemini",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7524ba81-bfb0-4e35-a9d8-81c247ed40ad",
+                    "leftValue": "data",
+                    "rightValue": "data",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "data2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -520,
+        60
+      ],
+      "id": "1d44c7c3-f17e-47a8-a1ed-5cf43aad29b3",
+      "name": "Switch",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e7572a1f-514f-4e03-9555-4108b77b0aab",
+              "name": "Gemini",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        40
+      ],
+      "id": "3f89f151-1a94-4a14-b0dd-77dd8c45aaa4",
+      "name": "Field-Gemini"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $('When Executed by Another Workflow').item.json.chat_id }}",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ $('When Executed by Another Workflow').item.json.query }} Chart"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -700,
+        240
+      ],
+      "id": "da3fd5ee-4a6e-46f1-be3b-55110ccd6faf",
+      "name": "Telegram",
+      "webhookId": "335c54a7-f64a-429d-b132-d691636f446f",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "32RHgntdMeuSM6BZ",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('When Executed by Another Workflow').item.json.chat_id }}",
+        "text": "={{ $json.Gemini }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        500,
+        40
+      ],
+      "id": "a6a4890f-dcf0-4a2d-8398-19dcc4a8307a",
+      "name": "Telegram1",
+      "webhookId": "335c54a7-f64a-429d-b132-d691636f446f",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "32RHgntdMeuSM6BZ",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "TSLA",
+          "chat_id": 1111576484
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AWS Lambda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AWS Lambda": {
+      "main": [
+        [
+          {
+            "node": "AWS S3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AWS S3": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini 2.0 Flash-exp": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gemini",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "main": [
+        [
+          {
+            "node": "Field-Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Field-Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Field-Gemini": {
+      "main": [
+        [
+          {
+            "node": "Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "414b1820-35c7-4846-959d-33c958d89a18",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c81f5f1d0a322e4aeb97f425f39da164b096fef3aea3eda64bce22794b9ad65c"
+  },
+  "id": "5IQjIV85QD9Orlse",
+  "tags": []
+}
