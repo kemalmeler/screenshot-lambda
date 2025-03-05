@@ -1,0 +1,220 @@
+{
+  "name": "Borsaci",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        -200
+      ],
+      "id": "737f6d69-6731-48fe-9f97-04ecf5a792cd",
+      "name": "Telegram Trigger",
+      "webhookId": "ef962bf9-8279-445b-b820-9084dd2c595a",
+      "credentials": {
+        "telegramApi": {
+          "id": "32RHgntdMeuSM6BZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "options": {
+          "systemMessage": "=You are a seasoned financial expert with 20+ years of experience in global markets (stocks, forex, commodities, crypto), macroeconomics, and portfolio management. Your primary role is to assist users in analyzing financial data, assessing risks, performing technical/fundamental analysis, and making strategic decisions. Don't ask any question. You can also perform technical analysis using the **GetChart** tool to generate stock graphs. Image Data Field Name is \"data\". Telegram Chat id is \"{{ $('Telegram Trigger').item.json.message.chat.id }}\". Wait until tool give any output to you.\n\nIn your responses:\n\nYour response should be the same as the answer from the **GetChart** tool's.\n\nIn your responses:\n\nInterpret market data (e.g., Fed rate decisions, GDP, CPI) in both current and historical contexts.\n\nSimplify complex financial concepts (e.g., derivatives, arbitrage, volatility models) with clear explanations.\n\nEmphasize risk-reward balance; avoid speculative recommendations.\n\nFor data-driven predictions, frame them as plausible scenarios (e.g., 'If inflation remains elevated, the Fed’s hawkish policies could lead to X outcome').\n\nFollow ethical guidelines: Do not provide investment advice; offer educational insights only.\n\nWhen you prepare the answer, translate it Turkish. Just send Turkish version.\n\nFormat:\n\nCombine TECHNICAL (RSI, MACD, support/resistance), FUNDAMENTAL (company balance sheets, P/E ratios), and SENTIMENT (news, social media trends) analysis.\n\nIn uncertain situations, use phrases like: 'I recommend verifying [X data source] to confirm this trend.'\n\nExample Response:\n'BTC/USD remains below the 50-day EMA, with RSI at 42. Short-term bearish momentum may persist, but regulatory developments in China should be closely monitored.'\"\nTool Input(to **GetChart**):\n- When you call the **GetChart** tool for graph, your output has {{ $json.message.chat.id }} and query. Query just has string value and stock name.\nExample Input to **GetChart**;\n{\n\"query\": \"ENKA\"(stock name in chat),\n\"chat_id\": \"{{ $json.message.chat.id }}\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        500,
+        -200
+      ],
+      "id": "5350462d-5563-4254-914c-3d71263af5ae",
+      "name": "Borsacı Agent",
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-r1-distill-llama-70b:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "9af467d1-8e2a-41eb-b8dd-88ec8024de30",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "8q1TtBJmIgL57q2o",
+          "name": "OpenRouter account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "name": "GetChart",
+        "description": "Call this tool when you need chart.",
+        "workflowId": {
+          "__rl": true,
+          "value": "5IQjIV85QD9Orlse",
+          "mode": "list",
+          "cachedResultName": "AI_Analyzer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -40
+      ],
+      "id": "d0753297-65f3-42d9-904c-427b0967c894",
+      "name": "GetChart"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        460,
+        -60
+      ],
+      "id": "2b3418fb-783c-42f4-8720-6006b350e9e5",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "AvyS1Rl0QzQYyRmz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "=ERROR: {{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('Borsacı Agent').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        940,
+        -200
+      ],
+      "id": "1ad6857f-f369-4d49-aae7-ccd8036c7724",
+      "name": "Telegram",
+      "webhookId": "f77384e7-184a-4ef5-8575-0525df91184b",
+      "credentials": {
+        "telegramApi": {
+          "id": "32RHgntdMeuSM6BZ",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Borsacı Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borsacı Agent": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetChart": {
+      "ai_tool": [
+        [
+          {
+            "node": "Borsacı Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Borsacı Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "889a42f1-0625-4de3-ace1-93f228f51e89",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c81f5f1d0a322e4aeb97f425f39da164b096fef3aea3eda64bce22794b9ad65c"
+  },
+  "id": "Addz6rlEzSCeH08g",
+  "tags": []
+}
